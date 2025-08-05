@@ -48,15 +48,25 @@ autoUpdater.on("error", (err) => {
 let lastUpdateTime = 0;
 let processNotif = null;
 autoUpdater.on("download-progress", (progressObj) => {
-    let log_message = "Download speed: " + progressObj.bytesPerSecond;
-    log_message = log_message + " - Downloaded " + progressObj.percent + "%";
-    log_message =
-        log_message +
-        " (" +
-        progressObj.transferred +
-        "/" +
-        progressObj.total +
-        ")";
+    const totalMB = (progressObj.total / 1024 / 1024).toFixed(1);
+    const transferredMB = (progressObj.transferred / 1024 / 1024).toFixed(1);
+    const speedKB = Math.round(progressObj.bytesPerSecond / 1024);
+    const percent = Math.round(progressObj.percent);
+
+    // Enhanced log message with sizes
+    let log_message = `📥 Download Progress: ${percent}% | `;
+    log_message += `${transferredMB}MB / ${totalMB}MB | `;
+    log_message += `Speed: ${speedKB} KB/s | `;
+    log_message += `Bytes: ${progressObj.transferred}/${progressObj.total}`;
+
+    // Add delta update indicator
+    if (progressObj.total < 50 * 1024 * 1024) {
+        // Less than 50MB = likely delta
+        log_message += " 🔄 [DELTA UPDATE]";
+    } else {
+        log_message += " 📦 [FULL UPDATE]";
+    }
+
     console.log(log_message);
 
     const now = Date.now();
@@ -64,14 +74,11 @@ autoUpdater.on("download-progress", (progressObj) => {
     if (now - lastUpdateTime < 2000) return;
     lastUpdateTime = now;
 
-    const percent = Math.round(progressObj.percent);
-    const speed = Math.round(progressObj.bytesPerSecond / 1024);
-
     if (processNotif) {
         processNotif.close();
         processNotif = new Notification({
             title: "Downloading Update...",
-            body: `${percent}% complete (${speed} KB/s)`,
+            body: `${percent}% • ${transferredMB}/${totalMB}MB • ${speedKB} KB/s`,
             silent: true,
             timeoutType: "never",
         });
@@ -99,7 +106,11 @@ let mainWindow;
 
 function createMainWindow() {
     const window = new BrowserWindow({
-        webPreferences: { nodeIntegration: true },
+        webPreferences: {
+            nodeIntegration: false,
+            contextIsolation: true,
+            preload: path.join(__dirname, "../renderer/preload.js"),
+        },
     });
 
     if (isDevelopment) {
