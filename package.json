@@ -1,0 +1,54 @@
+{
+  "name": "build-ota-electron-builder",
+  "description": "fkaroundbuilder&findout",
+  "author": "Danny",
+  "version": "1.0.0",
+  "license": "MIT",
+  "scripts": {
+    "postinstall": "electron-builder install-app-deps",
+    "dev": "electron-webpack dev",
+    "compile": "electron-webpack",
+    "dist": "yarn compile && electron-builder",
+    "dist:dir": "yarn dist --dir -c.compression=store -c.mac.identity=null",
+    "publish": "dotenv -- electron-builder --publish always",
+    "release": "dotenv -- yarn compile && dotenv -- electron-builder --publish always"
+  },
+  "dependencies": {
+    "electron-log": "^5.4.2",
+    "electron-updater": "^6.6.2",
+    "source-map-support": "^0.5.16"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^10.0.0",
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3",
+    "electron-webpack": "^2.8.2",
+    "webpack": "^4.46.0"
+  },
+  "build": {
+    "publish": {
+      "provider": "github",
+      "owner": "dannyboi07",
+      "repo": "ota-electron-builder"
+    },
+    "appId": "com.build-ota-electron-builder.app",
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    }
+  }
+}
