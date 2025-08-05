@@ -16,9 +16,13 @@ autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 
 autoUpdater.on("checking-for-update", () => {
-    new Notification({
-        title: "Checking for update...",
-    }).show();
+    console.log("Checking for updates...");
+
+    if (process.env.NODE_ENV === "development") {
+        new Notification({
+            title: "Checking for update...",
+        }).show();
+    }
 });
 
 autoUpdater.on("update-available", (info) => {
@@ -33,15 +37,15 @@ autoUpdater.on("update-not-available", (info) => {
     console.log("Update not available:", info);
 
     new Notification({
-        title: "Update Available!",
+        title: "No updates unavaiable :(",
     }).show();
 });
 
 autoUpdater.on("error", (err) => {
     console.error("Error in auto-updater", err);
-
     new Notification({
-        title: "Failed to check for updates",
+        title: "Update Error",
+        body: "Failed to check for updates",
     }).show();
 });
 
@@ -53,15 +57,12 @@ autoUpdater.on("download-progress", (progressObj) => {
     const speedKB = Math.round(progressObj.bytesPerSecond / 1024);
     const percent = Math.round(progressObj.percent);
 
-    // Enhanced log message with sizes
     let log_message = `📥 Download Progress: ${percent}% | `;
     log_message += `${transferredMB}MB / ${totalMB}MB | `;
     log_message += `Speed: ${speedKB} KB/s | `;
     log_message += `Bytes: ${progressObj.transferred}/${progressObj.total}`;
 
-    // Add delta update indicator
     if (progressObj.total < 50 * 1024 * 1024) {
-        // Less than 50MB = likely delta
         log_message += " 🔄 [DELTA UPDATE]";
     } else {
         log_message += " 📦 [FULL UPDATE]";
@@ -70,26 +71,29 @@ autoUpdater.on("download-progress", (progressObj) => {
     console.log(log_message);
 
     const now = Date.now();
-    // Only update notification every 2 seconds
     if (now - lastUpdateTime < 2000) return;
     lastUpdateTime = now;
 
     if (processNotif) {
         processNotif.close();
-        processNotif = new Notification({
-            title: "Downloading Update...",
-            body: `${percent}% • ${transferredMB}/${totalMB}MB • ${speedKB} KB/s`,
-            silent: true,
-            timeoutType: "never",
-        });
-        processNotif.show();
     }
+    processNotif = new Notification({
+        title: "Downloading Update...",
+        body: `${percent}% • ${transferredMB}/${totalMB}MB • ${speedKB} KB/s`,
+        silent: true,
+        timeoutType: "never",
+    });
+    processNotif.show();
 });
 
 autoUpdater.on("update-downloaded", (info) => {
-    console.log("Update downloaded");
+    console.log("Update downloaded:", info);
 
-    // Show notification that update will install on quit
+    if (processNotif) {
+        processNotif.close();
+        processNotif = null;
+    }
+
     if (Notification.isSupported()) {
         new Notification({
             title: "Update Ready",
@@ -100,16 +104,50 @@ autoUpdater.on("update-downloaded", (info) => {
 });
 
 const isDevelopment = process.env.NODE_ENV !== "production";
-
 // global reference to mainWindow (necessary to prevent window from being garbage collected)
 let mainWindow;
 
 function createMainWindow() {
+    // Use deterministic absolute paths
+    const getAbsolutePath = (type, filename) => {
+      if (isDevelopment) {
+          // Use current working directory instead of app path
+          const basePaths = {
+              renderer: path.join(process.cwd(), 'src', 'renderer'),
+              assets: path.join(process.cwd(), 'assets'),
+          };
+          return path.join(basePaths[type], filename);
+      } else {
+          // Production paths remain the same
+          const basePaths = {
+              renderer: path.join(process.resourcesPath, 'app', 'renderer'),
+              assets: path.join(process.resourcesPath, 'app', 'assets'),
+          };
+          return path.join(basePaths[type], filename);
+      }
+  };
+
+    const preloadPath = getAbsolutePath("renderer", "preload.js");
+    const indexPath = getAbsolutePath("renderer", "index.html");
+
+    // Log all paths for debugging
+    console.log("=== ELECTRON PATHS DEBUG ===");
+    console.log("Environment:", isDevelopment ? "development" : "production");
+    console.log("app.getAppPath():", app.getAppPath());
+    console.log("process.resourcesPath:", process.resourcesPath);
+    console.log("__dirname:", __dirname);
+    console.log("preloadPath:", preloadPath);
+    console.log("indexPath:", indexPath);
+    console.log("=== END DEBUG ===");
+
     const window = new BrowserWindow({
+        width: 1200,
+        height: 800,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
-            preload: path.join(__dirname, "../renderer/preload.js"),
+            preload: preloadPath, // Absolute path
+            webSecurity: true,
         },
     });
 
@@ -117,13 +155,46 @@ function createMainWindow() {
         window.webContents.openDevTools();
     }
 
-    window.loadURL(
-        formatUrl({
-            pathname: path.join(__dirname, "../renderer/index.html"),
-            protocol: "file",
-            slashes: true,
-        }),
-    );
+    // Load using absolute path
+    window.loadFile(indexPath).catch((err) => {
+        console.error("Failed to load index.html from:", indexPath, err);
+
+        // Show error page with path information
+        const errorHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Load Error</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 40px; }
+                    .error { color: #d32f2f; }
+                    .info { background: #f5f5f5; padding: 10px; margin: 10px 0; }
+                </style>
+            </head>
+            <body>
+                <h1 class="error">Application Load Error</h1>
+                <p>Could not load the main application file.</p>
+                
+                <div class="info">
+                    <h3>Path Information:</h3>
+                    <p><strong>Attempted to load:</strong> ${indexPath}</p>
+                    <p><strong>App Path:</strong> ${app.getAppPath()}</p>
+                    <p><strong>Resources Path:</strong> ${
+                        process.resourcesPath
+                    }</p>
+                    <p><strong>Environment:</strong> ${
+                        isDevelopment ? "Development" : "Production"
+                    }</p>
+                </div>
+                
+                <p>Please check that the renderer files are built and in the correct location.</p>
+            </body>
+            </html>
+        `;
+        window.loadURL(
+            `data:text/html;charset=utf-8,${encodeURIComponent(errorHtml)}`,
+        );
+    });
 
     window.on("closed", () => {
         mainWindow = null;
@@ -139,16 +210,13 @@ function createMainWindow() {
     return window;
 }
 
-// quit application when all windows are closed
 app.on("window-all-closed", () => {
-    // on macOS it is common for applications to stay open until the user explicitly quits
     if (process.platform !== "darwin") {
         app.quit();
     }
 });
 
 app.on("activate", () => {
-    // on macOS it is common to re-create a window even after all windows have been closed
     if (mainWindow === null) {
         mainWindow = createMainWindow();
     }
@@ -158,9 +226,17 @@ app.on("activate", () => {
 app.on("ready", () => {
     mainWindow = createMainWindow();
 
-    autoUpdater.checkForUpdatesAndNotify();
+    setTimeout(() => {
+        autoUpdater.checkForUpdatesAndNotify();
+    }, 3000);
 
     setInterval(() => {
         autoUpdater.checkForUpdatesAndNotify();
     }, 10 * 60 * 1000);
+});
+
+app.on("before-quit", () => {
+    if (processNotif) {
+        processNotif.close();
+    }
 });
