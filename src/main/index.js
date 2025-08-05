@@ -15,10 +15,13 @@ autoUpdater.logger = log;
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 
+let currentNotification = null;
 autoUpdater.on("checking-for-update", () => {
     console.log("Checking for updates...");
 
     if (process.env.NODE_ENV === "development") {
+        if (currentNotification) currentNotification.close();
+
         new Notification({
             title: "Checking for update...",
         }).show();
@@ -27,6 +30,8 @@ autoUpdater.on("checking-for-update", () => {
 
 autoUpdater.on("update-available", (info) => {
     console.log("Update available:", info);
+
+    if (currentNotification) currentNotification.close();
     new Notification({
         title: "Update Available!",
         body: "Downloading update in background...",
@@ -36,6 +41,7 @@ autoUpdater.on("update-available", (info) => {
 autoUpdater.on("update-not-available", (info) => {
     console.log("Update not available:", info);
 
+    if (currentNotification) currentNotification.close();
     new Notification({
         title: "No updates unavaiable :(",
     }).show();
@@ -43,6 +49,8 @@ autoUpdater.on("update-not-available", (info) => {
 
 autoUpdater.on("error", (err) => {
     console.error("Error in auto-updater", err);
+
+    if (currentNotification) currentNotification.close();
     new Notification({
         title: "Update Error",
         body: "Failed to check for updates",
@@ -52,6 +60,8 @@ autoUpdater.on("error", (err) => {
 let lastUpdateTime = 0;
 let processNotif = null;
 autoUpdater.on("download-progress", (progressObj) => {
+    if (currentNotification) currentNotification.close();
+
     const totalMB = (progressObj.total / 1024 / 1024).toFixed(1);
     const transferredMB = (progressObj.transferred / 1024 / 1024).toFixed(1);
     const speedKB = Math.round(progressObj.bytesPerSecond / 1024);
@@ -89,6 +99,7 @@ autoUpdater.on("download-progress", (progressObj) => {
 autoUpdater.on("update-downloaded", (info) => {
     console.log("Update downloaded:", info);
 
+    if (currentNotification) currentNotification.close();
     if (processNotif) {
         processNotif.close();
         processNotif = null;
@@ -110,22 +121,22 @@ let mainWindow;
 function createMainWindow() {
     // Use deterministic absolute paths
     const getAbsolutePath = (type, filename) => {
-      if (isDevelopment) {
-          // Use current working directory instead of app path
-          const basePaths = {
-              renderer: path.join(process.cwd(), 'src', 'renderer'),
-              assets: path.join(process.cwd(), 'assets'),
-          };
-          return path.join(basePaths[type], filename);
-      } else {
-          // Production paths remain the same
-          const basePaths = {
-              renderer: path.join(process.resourcesPath, 'app', 'renderer'),
-              assets: path.join(process.resourcesPath, 'app', 'assets'),
-          };
-          return path.join(basePaths[type], filename);
-      }
-  };
+        if (isDevelopment) {
+            // Use current working directory instead of app path
+            const basePaths = {
+                renderer: path.join(process.cwd(), "src", "renderer"),
+                assets: path.join(process.cwd(), "assets"),
+            };
+            return path.join(basePaths[type], filename);
+        } else {
+            // Production paths remain the same
+            const basePaths = {
+                renderer: path.join(process.resourcesPath, "app", "renderer"),
+                assets: path.join(process.resourcesPath, "app", "assets"),
+            };
+            return path.join(basePaths[type], filename);
+        }
+    };
 
     const preloadPath = getAbsolutePath("renderer", "preload.js");
     const indexPath = getAbsolutePath("renderer", "index.html");
@@ -236,6 +247,7 @@ app.on("ready", () => {
 });
 
 app.on("before-quit", () => {
+    if (currentNotification) currentNotification.close();
     if (processNotif) {
         processNotif.close();
     }
