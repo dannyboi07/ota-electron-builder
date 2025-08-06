@@ -115,50 +115,16 @@ autoUpdater.on("update-downloaded", (info) => {
 });
 
 const isDevelopment = process.env.NODE_ENV !== "production";
-// global reference to mainWindow (necessary to prevent window from being garbage collected)
 let mainWindow;
 
 function createMainWindow() {
-    // Use deterministic absolute paths
-    const getAbsolutePath = (type, filename) => {
-        if (isDevelopment) {
-            // Use current working directory instead of app path
-            const basePaths = {
-                renderer: path.join(process.cwd(), "src", "renderer"),
-                assets: path.join(process.cwd(), "assets"),
-            };
-            return path.join(basePaths[type], filename);
-        } else {
-            // Production paths remain the same
-            const basePaths = {
-                renderer: path.join(process.resourcesPath, "app", "renderer"),
-                assets: path.join(process.resourcesPath, "app", "assets"),
-            };
-            return path.join(basePaths[type], filename);
-        }
-    };
-
-    const preloadPath = getAbsolutePath("renderer", "preload.js");
-    const indexPath = getAbsolutePath("renderer", "index.html");
-
-    // Log all paths for debugging
-    console.log("=== ELECTRON PATHS DEBUG ===");
-    console.log("Environment:", isDevelopment ? "development" : "production");
-    console.log("app.getAppPath():", app.getAppPath());
-    console.log("process.resourcesPath:", process.resourcesPath);
-    console.log("__dirname:", __dirname);
-    console.log("preloadPath:", preloadPath);
-    console.log("indexPath:", indexPath);
-    console.log("=== END DEBUG ===");
-
     const window = new BrowserWindow({
         width: 1200,
         height: 800,
         webPreferences: {
             nodeIntegration: false,
             contextIsolation: true,
-            preload: preloadPath, // Absolute path
-            webSecurity: true,
+            preload: path.join(process.cwd(), "src", "main", "preload.js"),
         },
     });
 
@@ -166,12 +132,26 @@ function createMainWindow() {
         window.webContents.openDevTools();
     }
 
-    // Load using absolute path
-    window.loadFile(indexPath).catch((err) => {
-        console.error("Failed to load index.html from:", indexPath, err);
+    if (isDevelopment) {
+        console.log(
+            "debug WEBPACK_WDS_PORT",
+            process.env.ELECTRON_WEBPACK_WDS_PORT,
+        );
+        // In development, load from webpack dev server or built files
+        // const indexPath = path.join(process.cwd(), "dist", "index.html");
+        window
+            .loadURL(
+                `http://localhost:${process.env.ELECTRON_WEBPACK_WDS_PORT}`,
+            )
+            .catch((err) => {
+                console.error(
+                    "Failed to load index.html from:",
+                    indexPath,
+                    err,
+                );
 
-        // Show error page with path information
-        const errorHtml = `
+                // Show error page with path information
+                const errorHtml = `
             <!DOCTYPE html>
             <html>
             <head>
@@ -185,7 +165,55 @@ function createMainWindow() {
             <body>
                 <h1 class="error">Application Load Error</h1>
                 <p>Could not load the main application file.</p>
-                
+
+                <div class="info">
+                    <h3>Path Information:</h3>
+                    <p><strong>Attempted to load:</strong> ${indexPath}</p>
+                    <p><strong>App Path:</strong> ${app.getAppPath()}</p>
+                    <p><strong>Environment:</strong> Development</p>
+                </div>
+
+                <p>Please run webpack build first: npm run build</p>
+            </body>
+            </html>
+        `;
+                window.loadURL(
+                    `data:text/html;charset=utf-8,${encodeURIComponent(
+                        errorHtml,
+                    )}`,
+                );
+            });
+    } else {
+        window
+            .loadURL(
+                formatUrl({
+                    pathname: path.join(__dirname, "index.html"),
+                    protocol: "file",
+                    slashes: true,
+                }),
+            )
+            .catch((err) => {
+                console.error(
+                    "Failed to load index.html from:",
+                    indexPath,
+                    err,
+                );
+
+                const errorHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Load Error</title>
+                <style>
+                    body { font-family: Arial, sans-serif; margin: 40px; }
+                    .error { color: #d32f2f; }
+                    .info { background: #f5f5f5; padding: 10px; margin: 10px 0; }
+                </style>
+            </head>
+            <body>
+                <h1 class="error">Application Load Error</h1>
+                <p>Could not load the main application file.</p>
+
                 <div class="info">
                     <h3>Path Information:</h3>
                     <p><strong>Attempted to load:</strong> ${indexPath}</p>
@@ -193,19 +221,20 @@ function createMainWindow() {
                     <p><strong>Resources Path:</strong> ${
                         process.resourcesPath
                     }</p>
-                    <p><strong>Environment:</strong> ${
-                        isDevelopment ? "Development" : "Production"
-                    }</p>
+                    <p><strong>Environment:</strong> Production</p>
                 </div>
-                
+
                 <p>Please check that the renderer files are built and in the correct location.</p>
             </body>
             </html>
         `;
-        window.loadURL(
-            `data:text/html;charset=utf-8,${encodeURIComponent(errorHtml)}`,
-        );
-    });
+                window.loadURL(
+                    `data:text/html;charset=utf-8,${encodeURIComponent(
+                        errorHtml,
+                    )}`,
+                );
+            });
+    }
 
     window.on("closed", () => {
         mainWindow = null;
@@ -233,7 +262,6 @@ app.on("activate", () => {
     }
 });
 
-// create main BrowserWindow when electron is ready
 app.on("ready", () => {
     mainWindow = createMainWindow();
 

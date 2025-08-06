@@ -8,4 +8,6 @@ function appendChildElement() {
     document.getElementById("app").appendChild(element);
 }
 
+appendChildElement();
+
 window.addEventListener("load", appendChildElement);

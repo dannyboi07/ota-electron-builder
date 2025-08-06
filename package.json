@@ -7,7 +7,7 @@
   "scripts": {
     "postinstall": "electron-builder install-app-deps",
     "dev": "electron-webpack dev",
-    "compile": "electron-webpack",
+    "compile": "webpack --config webpack.renderer.config.js",
     "dist": "yarn compile && electron-builder",
     "dist:dir": "yarn dist --dir -c.compression=store -c.mac.identity=null",
     "publish": "dotenv -- electron-builder --publish always",
@@ -19,11 +19,24 @@
     "source-map-support": "^0.5.16"
   },
   "devDependencies": {
+    "@babel/core": "^7.28.0",
+    "@babel/preset-env": "^7.28.0",
+    "babel-loader": "^8.2.5",
     "dotenv-cli": "^10.0.0",
     "electron": "^31.0.0",
     "electron-builder": "^24.13.3",
     "electron-webpack": "^2.8.2",
+    "html-webpack-plugin": "^4.5.2",
     "webpack": "^4.46.0"
+  },
+  "electronWebpack": {
+    "main": {
+      "sourceDirectory": "src/main"
+    },
+    "renderer": {
+      "sourceDirectory": "src/renderer",
+      "webpackConfig": "webpack.renderer.config.js"
+    }
   },
   "build": {
     "publish": {
