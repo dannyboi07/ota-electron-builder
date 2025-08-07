@@ -2,7 +2,7 @@
   "name": "build-ota-electron-builder",
   "description": "fkaroundbuilder&findout",
   "author": "Danny",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "license": "MIT",
   "scripts": {
     "postinstall": "electron-builder install-app-deps",
