@@ -1,13 +1,15 @@
 // Initial welcome page. Delete the following line to remove it.
 "use strict";
 
-function appendChildElement() {
-    const element = document.createElement("h1");
-    element.textContent = "This was created from JS!";
+function appendChildren() {
+    const rootDiv = document.getElementById("app");
 
-    document.getElementById("app").appendChild(element);
+    for (let i = 0; i < 5; i++) {
+        const element = document.createElement("h1");
+        element.textContent = "This was created from JS!" + i;
+
+        rootDiv.appendChild(element);
+    }
 }
 
-appendChildElement();
-
-window.addEventListener("load", appendChildElement);
+window.addEventListener("load", appendChildren);
