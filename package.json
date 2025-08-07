@@ -49,7 +49,7 @@
     "directories": {
       "output": "dist"
     },
-    "afterSign": "build/scripts/remove-signature.js",
+    "afterSign": "build/scripts/ad-hoc-signature.js",
     "mac": {
       "target": [
         "dmg",
