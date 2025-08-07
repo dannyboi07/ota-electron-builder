@@ -17,7 +17,7 @@ autoUpdater.autoInstallOnAppQuit = true;
 
 let currentNotification = null;
 autoUpdater.on("checking-for-update", () => {
-    console.log("Checking for updates...");
+    console.log("Checking for updates..., currently on ", app.getVersion());
 
     if (process.env.NODE_ENV === "development") {
         if (currentNotification) currentNotification.close();
@@ -29,7 +29,12 @@ autoUpdater.on("checking-for-update", () => {
 });
 
 autoUpdater.on("update-available", (info) => {
-    console.log("Update available:", info);
+    console.log(
+        "Update available, currently on:",
+        app.getVersion(),
+        "info:",
+        info,
+    );
 
     if (currentNotification) currentNotification.close();
     new Notification({
@@ -39,7 +44,12 @@ autoUpdater.on("update-available", (info) => {
 });
 
 autoUpdater.on("update-not-available", (info) => {
-    console.log("Update not available:", info);
+    console.log(
+        "Update not available, currently on:",
+        app.getVersion(),
+        "info:",
+        info,
+    );
 
     if (currentNotification) currentNotification.close();
     new Notification({
@@ -48,7 +58,12 @@ autoUpdater.on("update-not-available", (info) => {
 });
 
 autoUpdater.on("error", (err) => {
-    console.error("Error in auto-updater", err);
+    console.error(
+        "Error in auto-updater, currently on",
+        app.getVersion(),
+        "err:",
+        err,
+    );
 
     if (currentNotification) currentNotification.close();
     new Notification({
@@ -97,7 +112,7 @@ autoUpdater.on("download-progress", (progressObj) => {
 });
 
 autoUpdater.on("update-downloaded", (info) => {
-    console.log("Update downloaded:", info);
+    console.log("Update downloaded, currently on:", app.getVersion(), info);
 
     if (currentNotification) currentNotification.close();
     if (processNotif) {
