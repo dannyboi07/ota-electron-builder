@@ -12,11 +12,13 @@ const path = require("path");
  * @param {AfterPackContext} context - The context object provided by electron-builder
  */
 exports.default = async function (context) {
-    const appPath = path.join(
-        context.appOutDir,
-        `${context.packager.appInfo.productFilename}.app`,
-    );
-    console.log("🔧 Removing code signature from:", appPath);
-    execSync(`codesign --remove-signature "${appPath}"`);
-    console.log("✅ Signature removed");
+    if (process.platform === "darwin") {
+        const appPath = path.join(
+            context.appOutDir,
+            `${context.packager.appInfo.productFilename}.app`,
+        );
+        console.log("🔧 Removing code signature from:", appPath);
+        execSync(`codesign --remove-signature "${appPath}"`);
+        console.log("✅ Signature removed");
+    } else console.log("Non-Darwin platform, skipping removal of signature")
 };
