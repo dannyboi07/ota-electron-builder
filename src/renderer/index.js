@@ -4,7 +4,7 @@
 function appendChildren() {
     const rootDiv = document.getElementById("app");
 
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
         const element = document.createElement("h1");
         element.textContent = "This was created from JS!" + i;
 
