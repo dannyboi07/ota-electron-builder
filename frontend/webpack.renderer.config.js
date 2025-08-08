@@ -13,7 +13,7 @@ module.exports = {
         filename: "index.js",
         libraryTarget: "var",
     },
-    target: "electron-renderer",
+    target: "web",
     module: {
         rules: [
             {
