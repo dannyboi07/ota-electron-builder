@@ -40,6 +40,7 @@
     }
   },
   "build": {
+    "beforePack": "scripts/build/pre-pack.js",
     "publish": {
       "provider": "github",
       "owner": "dannyboi07",
