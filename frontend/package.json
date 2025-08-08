@@ -7,7 +7,7 @@
   "scripts": {
     "postinstall": "electron-builder install-app-deps",
     "dev": "cross-env NODE_ENV=development electron-webpack dev",
-    "compile": "cross-env NODE_ENV=production electron-webpack",
+    "compile": "cross-env NODE_ENV=production rm -rf dist && electron-webpack",
     "dist": "cross-env NODE_ENV=production yarn compile && electron-builder",
     "dist:dir": "cross-env NODE_ENV=production yarn dist --dir -c.compression=normal -c.mac.identity=null",
     "publish": "cross-env NODE_ENV=production dotenv -- electron-builder --publish always",
@@ -49,7 +49,7 @@
     "directories": {
       "output": "dist"
     },
-    "afterSign": "build/scripts/ad-hoc-signature.js",
+    "afterSign": "scripts/build/ad-hoc-signature.js",
     "mac": {
       "target": [
         "dmg",
