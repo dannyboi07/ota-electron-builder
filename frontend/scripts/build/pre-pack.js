@@ -1,21 +1,17 @@
-const { exec, spawnSync } = require("child_process");
+const { spawnSync } = require("child_process");
 const path = require("path");
+const fs = require("fs");
+
+const pathToRootOfRepo = path.join(__dirname, "../", "../", "../");
 
 function chDirToRootOfRepoAndThenSomeMore(...pathFromRoot) {
-    process.chdir(
-        path.join(__dirname, "../", "../", "../", ...(pathFromRoot || [])),
-    );
-}
-
-function chDirToBackend() {
-    // process.chdir(path.join(__dirname, "../", "../", "../", "backend"));
-    chDirToRootOfRepoAndThenSomeMore("backend");
+    process.chdir(path.join(pathToRootOfRepo, ...(pathFromRoot || [])));
 }
 
 function buildBackend() {
     let wasSuccessful = false;
-    chDirToBackend();
-    console.log("buildBackend(): PWD", process.cwd());
+    chDirToRootOfRepoAndThenSomeMore("backend");
+    console.log("buildBackend(): PWD", process.cwd(), pathToRootOfRepo);
 
     const result = spawnSync("cargo", ["build", "--release"], {
         stdio: "inherit",
@@ -27,68 +23,63 @@ function buildBackend() {
         );
     } else wasSuccessful = true;
 
+    chDirToRootOfRepoAndThenSomeMore("frontend");
     return wasSuccessful;
 }
 
 function copyBackend() {
     let wasSuccessful = false;
-    chDirToRootOfRepoAndThenSomeMore();
-    console.log("copyBackend(): PWD", process.cwd());
 
-    // exec("rm -rf ./frontend/public/backend", (err, stdout, stderr) => {
-    //     if (err || stderr) {
-    //         console.error(
-    //             "Error removing the backend build files, CAN'T STOP WON'T STOP: ",
-    //             err || stderr,
-    //         );
-    //     }
-
-    //   });
-
-    exec(
-        "cp ./backend/target/release/backend ./frontend/public",
-        (err, stdout, stderr) => {
-            if (err || stderr) {
-                console.error(
-                    "Error copying the backend binary to the /frontend/public directory: ",
-                    err || stderr,
-                );
-                return;
-            }
-
-            wasSuccessful = true;
-        },
-    );
+    try {
+        fs.copyFileSync(
+            path.join(
+                pathToRootOfRepo,
+                "backend",
+                "target",
+                "release",
+                process.platform === "darwin" ? "backend" : "backend.exe",
+            ),
+            path.join(
+                pathToRootOfRepo,
+                "frontend",
+                "public",
+                process.platform === "darwin" ? "backend" : "backend.exe",
+            ),
+        );
+        wasSuccessful = true;
+        console.log("Copied the backend!");
+    } catch (error) {
+        console.error(
+            "Error copying the backend binary to the frontend's public directort",
+            error,
+        );
+    }
 
     return wasSuccessful;
 }
 
 function cleanupTargetDir() {
     let wasSuccessful = false;
-    chDirToBackend();
-    console.log("cleanupTargetDir(): PWD", process.cwd());
 
-    exec("rm -rf target", (err, stdout, stderr) => {
-        if (err || stderr) {
-            console.error(
-                "Error removing the backend build files: ",
-                err || stderr,
-            );
-            return;
-        }
-
+    try {
+        fs.rmSync(path.join(pathToRootOfRepo, "backend", "target"), {
+            recursive: true,
+            force: true,
+        });
         wasSuccessful = true;
-    });
+        console.log("Removed the /backend/target dir!");
+    } catch (error) {
+        console.error("Error removing the backend build files: ", error);
+    }
 
-    chDirToRootOfRepoAndThenSomeMore("frontend");
     return wasSuccessful;
 }
 
 function buildAndCopyBackend() {
-    if (buildBackend()) {
-        copyBackend();
-        cleanupTargetDir();
-    }
+    if (!buildBackend()) return;
+    if (!copyBackend()) return;
+
+    cleanupTargetDir();
 }
 
 module.exports = buildAndCopyBackend;

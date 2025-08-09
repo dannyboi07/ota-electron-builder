@@ -41,6 +41,9 @@
   },
   "build": {
     "beforePack": "scripts/build/pre-pack.js",
+    "extraResources": [
+      "public/**/*"
+    ],
     "publish": {
       "provider": "github",
       "owner": "dannyboi07",
