@@ -5,13 +5,15 @@ import * as path from "path";
 import { format as formatUrl } from "url";
 import log from "electron-log";
 import { autoUpdater } from "electron-updater";
+import Backend from "./Backend";
 
-console.log = log.log;
-console.error = log.error;
-console.warn = log.warn;
-console.info = log.info;
+const mainLogger = log.scope("main");
+console.log = mainLogger.log;
+console.error = mainLogger.error;
+console.warn = mainLogger.warn;
+console.info = mainLogger.info;
 
-autoUpdater.logger = log;
+autoUpdater.logger = mainLogger;
 autoUpdater.autoDownload = true;
 autoUpdater.autoInstallOnAppQuit = true;
 
@@ -131,6 +133,10 @@ autoUpdater.on("update-downloaded", (info) => {
 
 const isDevelopment = process.env.NODE_ENV !== "production";
 let mainWindow;
+/**
+ * @type {Backend}
+ */
+let backend;
 
 function createMainWindow() {
     const window = new BrowserWindow({
@@ -276,6 +282,9 @@ app.on("activate", () => {
 });
 
 app.on("ready", () => {
+    backend = new Backend(mainLogger);
+    backend.start();
+
     mainWindow = createMainWindow();
 
     setTimeout(() => {
@@ -285,6 +294,10 @@ app.on("ready", () => {
     setInterval(() => {
         autoUpdater.checkForUpdatesAndNotify();
     }, 10 * 60 * 1000);
+});
+
+app.on("will-quit", () => {
+    backend.stop();
 });
 
 app.on("before-quit", () => {
