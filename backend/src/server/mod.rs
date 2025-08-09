@@ -27,5 +27,5 @@ impl Server {
 }
 
 async fn root() -> Json<Value> {
-    Json(json!({ "status": "success", "data": "Hello World! New response" }))
+    Json(json!({ "status": "success", "data": "Hello World! Even newer response for v2.3.0" }))
 }
