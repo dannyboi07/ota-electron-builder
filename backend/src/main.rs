@@ -4,5 +4,5 @@ mod server;
 async fn main() {
     println!("Hello, world!");
 
-    server::Server::new(9000).start().await;
+    server::Server::new(7000).start().await;
 }

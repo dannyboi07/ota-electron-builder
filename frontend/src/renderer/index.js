@@ -7,7 +7,7 @@ async function render() {
     const rootDiv = document.getElementById("app");
     const para = document.createElement("p");
 
-    fetch("http://localhost:9000")
+    fetch("http://localhost:7000")
         .then((res) => res.json())
         .then((response) => {
             para.textContent = `Status: ${response?.status}, Data: ${response?.data}`;
